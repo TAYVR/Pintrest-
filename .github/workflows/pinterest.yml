@@ -1,0 +1,25 @@
+name: Pinterest 24h Bot
+
+on:
+  schedule:
+    # Kol sa3a ghadi it-l-la7 post (24 posts f nhar)
+    - cron: '0 * * * *'
+  workflow_dispatch: # Bach t-qder t-khdmou manually ila bghiti
+
+jobs:
+  post_pin:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.9'
+      - name: Install dependencies
+        run: pip install requests
+      - name: Run Pinterest Bot
+        env:
+          TMDB_API_KEY: ${{ secrets.TMDB_API_KEY }}
+          PINTEREST_TOKEN: ${{ secrets.PINTEREST_ACCESS_TOKEN }}
+          BOARD_ID: ${{ secrets.PINTEREST_BOARD_ID }}
+        run: python bot.py
