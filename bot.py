@@ -2,52 +2,43 @@ import os
 import requests
 import random
 
-def get_random_tmdb_content():
+def post_pin():
+    # Hna fine khass t-koun s-smya bhal GitHub Secrets nichan
     api_key = os.getenv('TMDB_API_KEY')
-    # Khtar bin Movie awla TV show
-    media_type = random.choice(['movie', 'tv'])
-    # Khtar page random mn l-awal (page 1 tal 100 hit fihom popular content)
-    page = random.randint(1, 100)
+    token = os.getenv('PINTEREST_TOKEN') # Beddeltha 3la hsab t-tswira dyalk
+    board_id = os.getenv('BOARD_ID')      # Beddeltha hta hya
     
-    url = f"https://api.themoviedb.org/3/{media_type}/popular?api_key={api_key}&page={page}"
-    response = requests.get(url).json()
+    # 1. Njibo film
+    m_type = random.choice(['movie', 'tv'])
+    page = random.randint(1, 40)
+    tmdb_url = f"https://api.themoviedb.org/3/{m_type}/popular?api_key={api_key}&page={page}"
+    res = requests.get(tmdb_url).json()
+    item = random.choice(res['results'])
     
-    if 'results' in response and len(response['results']) > 0:
-        item = random.choice(response['results'])
-        item['media_type'] = media_type
-        return item
-    return None
-
-def post_to_pinterest():
-    item = get_random_tmdb_content()
-    if not item: return
-
-    token = os.getenv('PINTEREST_TOKEN')
-    board_id = os.getenv('BOARD_ID')
-    
-    m_type = item['media_type']
-    item_id = item['id']
     title = item.get('title') or item.get('name')
-    # Creer slug sghir
     slug = title.lower().replace(" ", "-").replace(":", "").replace("/", "")
-    
-    target_link = f"https://tomito.xyz/{m_type}/{item_id}-{slug}"
-    image_url = f"https://image.tmdb.org/t/p/w500{item['poster_path']}"
-    
+    link = f"https://tomito.xyz/{m_type}/{item['id']}-{slug}"
+    img = f"https://image.tmdb.org/t/p/w500{item['poster_path']}"
+
+    # 2. Payload Pinterest
     payload = {
         "board_id": board_id,
-        "title": title[:90], # Pinterest limit 100 char
-        "description": f"Watch {title} online on Tomito. {item.get('overview', '')[:150]}... #movies #tvshows #tomito",
-        "link": target_link,
-        "media_source": {
-            "source_type": "image_url",
-            "url": image_url
-        }
+        "title": title[:90],
+        "description": f"Watch {title} on Tomito. #movies #streaming",
+        "link": link,
+        "media_source": {"source_type": "image_url", "url": img}
     }
     
     headers = {"Authorization": f"Bearer {token}", "Content-Type": "application/json"}
+    
+    # 3. Post
     r = requests.post("https://api.pinterest.com/v5/pins", json=payload, headers=headers)
-    print(f"Status: {r.status_code} | Posted: {title}")
+    
+    print(f"Status: {r.status_code}")
+    if r.status_code == 201:
+        print(f"✅ Nadi! Posted: {title}")
+    else:
+        print(f"❌ Error: {r.text}")
 
 if __name__ == "__main__":
-    post_to_pinterest()
+    post_pin()
